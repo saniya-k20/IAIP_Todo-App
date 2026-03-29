@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Doist — Daily Task Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,500;0,700;1,300&family=Epilogue:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0e0f11;
+  --surface: #16181d;
+  --surface2: #1d2027;
+  --border: rgba(255,255,255,0.06);
+  --border-hover: rgba(255,255,255,0.12);
+  --text: #eceef2;
+  --muted: rgba(236,238,242,0.4);
+  --faint: rgba(236,238,242,0.07);
+  --green: #4ade80;
+  --green-bg: rgba(74,222,128,0.08);
+  --green-border: rgba(74,222,128,0.2);
+  --amber: #fbbf24;
+  --amber-bg: rgba(251,191,36,0.08);
+  --amber-border: rgba(251,191,36,0.2);
+  --red: #f87171;
+  --red-bg: rgba(248,113,113,0.08);
+  --accent: #818cf8;
+  --accent-bg: rgba(129,140,248,0.1);
+  --accent-border: rgba(129,140,248,0.3);
+  --radius: 14px;
+  --radius-sm: 8px;
+}
+
+html, body {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Epilogue', sans-serif;
+  font-weight: 300;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+/* Background decoration */
+.bg-orb {
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(120px);
+  opacity: 0.3;
+}
+.bg-orb-1 { width: 500px; height: 500px; top: -150px; right: -100px; background: radial-gradient(circle, #4338ca, transparent 70%); }
+.bg-orb-2 { width: 400px; height: 400px; bottom: -100px; left: -80px; background: radial-gradient(circle, #064e3b, transparent 70%); }
+
+.page {
+  position: relative;
+  z-index: 1;
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 60px 24px 80px;
+}
+
+/* Header */
+header {
+  margin-bottom: 48px;
+  animation: fadeDown 0.5s ease both;
+}
+
+.header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.wordmark {
+  font-family: 'Fraunces', serif;
+  font-size: 42px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  line-height: 1;
+}
+
+.wordmark em {
+  font-style: italic;
+  font-weight: 300;
+  color: var(--accent);
+}
+
+.date-badge {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 14px;
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.header-sub {
+  font-size: 14px;
+  color: var(--muted);
+  font-weight: 300;
+  letter-spacing: 0.02em;
+}
+
+/* Stats row */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 32px;
+  animation: fadeUp 0.5s 0.1s ease both;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-num {
+  font-family: 'Fraunces', serif;
+  font-size: 32px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--text);
+}
+
+.stat-label {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.stat-card.total .stat-num { color: var(--accent); }
+.stat-card.pending .stat-num { color: var(--amber); }
+.stat-card.done .stat-num { color: var(--green); }
+
+/* Add task form */
+.add-form {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 40px;
+  animation: fadeUp 0.5s 0.15s ease both;
+}
+
+.add-input {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: 'Epilogue', sans-serif;
+  font-size: 15px;
+  font-weight: 300;
+  padding: 14px 18px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.add-input::placeholder { color: var(--muted); }
+
+.add-input:focus {
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+
+.add-btn {
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius);
+  color: #0e0f11;
+  font-family: 'Epilogue', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 14px 24px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s, transform 0.1s;
+  letter-spacing: 0.02em;
+}
+
+.add-btn:hover { opacity: 0.88; }
+.add-btn:active { transform: scale(0.97); }
+
+/* Sections */
+.section {
+  margin-bottom: 36px;
+  animation: fadeUp 0.5s 0.2s ease both;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.section-title {
+  font-family: 'Fraunces', serif;
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.section-count {
+  font-size: 12px;
+  font-weight: 400;
+  padding: 2px 10px;
+  border-radius: 99px;
+}
+
+.section-pending .section-title { color: var(--amber); }
+.section-pending .section-count { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-border); }
+
+.section-completed .section-title { color: var(--green); }
+.section-completed .section-count { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+
+/* Task list */
+.task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Empty state */
+.empty-state {
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 28px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  letter-spacing: 0.03em;
+}
+
+/* Task item */
+.task-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  transition: border-color 0.2s, background 0.2s;
+  animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.task-item:hover { border-color: var(--border-hover); }
+
+.task-item.completed {
+  background: var(--green-bg);
+  border-color: var(--green-border);
+}
+
+/* Checkbox */
+.task-check {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-hover);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+  background: transparent;
+}
+
+.task-check:hover { border-color: var(--green); background: var(--green-bg); }
+.task-check.checked { background: var(--green); border-color: var(--green); }
+
+.task-check svg { display: none; }
+.task-check.checked svg { display: block; }
+
+/* Task body */
+.task-body { flex: 1; min-width: 0; }
+
+.task-text {
+  font-size: 15px;
+  font-weight: 300;
+  color: var(--text);
+  line-height: 1.5;
+  word-break: break-word;
+  transition: color 0.2s;
+}
+
+.task-item.completed .task-text {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+.task-text-input {
+  font-family: 'Epilogue', sans-serif;
+  font-size: 15px;
+  font-weight: 300;
+  color: var(--text);
+  background: var(--surface2);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  width: 100%;
+  outline: none;
+  line-height: 1.5;
+}
+
+.task-meta {
+  display: flex;
+  gap: 12px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.task-time {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+
+.task-time span { color: var(--muted); opacity: 0.6; margin: 0 4px; }
+
+/* Actions */
+.task-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.task-item:hover .task-actions { opacity: 1; }
+
+.act-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.act-btn:hover { background: var(--faint); color: var(--text); border-color: var(--border-hover); }
+.act-btn.edit:hover { color: var(--accent); border-color: var(--accent-border); background: var(--accent-bg); }
+.act-btn.delete:hover { color: var(--red); border-color: rgba(248,113,113,0.3); background: var(--red-bg); }
+.act-btn.save { color: var(--green); border-color: var(--green-border); background: var(--green-bg); }
+
+/* Animations */
+@keyframes fadeDown {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(0.95); }
+}
+
+/* Responsive */
+@media (max-width: 520px) {
+  .wordmark { font-size: 32px; }
+  .stats-row { grid-template-columns: repeat(3, 1fr); }
+  .stat-num { font-size: 24px; }
+  .add-form { flex-direction: column; }
+  .add-btn { width: 100%; }
+  .task-actions { opacity: 1; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg-orb bg-orb-1"></div>
+<div class="bg-orb bg-orb-2"></div>
+
+<div class="page">
+  <header>
+    <div class="header-top">
+      <h1 class="wordmark">Do<em>ist</em></h1>
+      <div class="date-badge" id="date-badge"></div>
+    </div>
+    <p class="header-sub">Your daily task manager — stay focused, stay done.</p>
+  </header>
+
+  <div class="stats-row">
+    <div class="stat-card total">
+      <div class="stat-num" id="stat-total">0</div>
+      <div class="stat-label">Total Tasks</div>
+    </div>
+    <div class="stat-card pending">
+      <div class="stat-num" id="stat-pending">0</div>
+      <div class="stat-label">Pending</div>
+    </div>
+    <div class="stat-card done">
+      <div class="stat-num" id="stat-done">0</div>
+      <div class="stat-label">Completed</div>
+    </div>
+  </div>
+
+  <div class="add-form">
+    <input class="add-input" id="add-input" type="text" placeholder="What do you need to get done today?" maxlength="200" />
+    <button class="add-btn" onclick="addTask()">+ Add Task</button>
+  </div>
+
+  <!-- Pending -->
+  <div class="section section-pending">
+    <div class="section-header">
+      <h2 class="section-title">Pending Tasks</h2>
+      <span class="section-count" id="pending-count">0</span>
+    </div>
+    <div class="task-list" id="pending-list"></div>
+  </div>
+
+  <!-- Completed -->
+  <div class="section section-completed">
+    <div class="section-header">
+      <h2 class="section-title">Completed Tasks</h2>
+      <span class="section-count" id="completed-count">0</span>
+    </div>
+    <div class="task-list" id="completed-list"></div>
+  </div>
+</div>
+
+<script>
+  let tasks = JSON.parse(localStorage.getItem('doist_tasks') || '[]');
+
+  function save() {
+    localStorage.setItem('doist_tasks', JSON.stringify(tasks));
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+      + ' ' + d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function updateDateBadge() {
+    const now = new Date();
+    document.getElementById('date-badge').textContent =
+      now.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  function updateStats() {
+    const total = tasks.length;
+    const done = tasks.filter(t => t.completed).length;
+    const pending = total - done;
+    document.getElementById('stat-total').textContent = total;
+    document.getElementById('stat-done').textContent = done;
+    document.getElementById('stat-pending').textContent = pending;
+    document.getElementById('pending-count').textContent = pending;
+    document.getElementById('completed-count').textContent = done;
+  }
+
+  function createTaskEl(task) {
+    const item = document.createElement('div');
+    item.className = 'task-item' + (task.completed ? ' completed' : '');
+    item.dataset.id = task.id;
+
+    item.innerHTML = `
+      <div class="task-check ${task.completed ? 'checked' : ''}" onclick="toggleTask('${task.id}')">
+        <svg width="11" height="9" viewBox="0 0 11 9" fill="none">
+          <path d="M1 4L4.2 7.5L10 1" stroke="#0e0f11" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="task-body">
+        <div class="task-text" id="text-${task.id}">${escHtml(task.text)}</div>
+        <div class="task-meta">
+          <div class="task-time">Added: ${fmtDate(task.addedAt)}${task.completedAt ? `<span>·</span>Done: ${fmtDate(task.completedAt)}` : ''}</div>
+        </div>
+      </div>
+      <div class="task-actions">
+        <button class="act-btn edit" title="Edit" onclick="startEdit('${task.id}')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+        </button>
+        <button class="act-btn delete" title="Delete" onclick="deleteTask('${task.id}')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+            <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+          </svg>
+        </button>
+      </div>
+    `;
+    return item;
+  }
+
+  function render() {
+    const pendingList = document.getElementById('pending-list');
+    const completedList = document.getElementById('completed-list');
+    pendingList.innerHTML = '';
+    completedList.innerHTML = '';
+
+    const pending = tasks.filter(t => !t.completed);
+    const completed = tasks.filter(t => t.completed);
+
+    if (pending.length === 0) {
+      pendingList.innerHTML = '<div class="empty-state">No pending tasks — add one above!</div>';
+    } else {
+      pending.forEach(t => pendingList.appendChild(createTaskEl(t)));
+    }
+
+    if (completed.length === 0) {
+      completedList.innerHTML = '<div class="empty-state">No completed tasks yet. Keep going!</div>';
+    } else {
+      completed.forEach(t => completedList.appendChild(createTaskEl(t)));
+    }
+
+    updateStats();
+  }
+
+  function addTask() {
+    const input = document.getElementById('add-input');
+    const text = input.value.trim();
+    if (!text) { input.focus(); return; }
+
+    const task = {
+      id: Date.now().toString(),
+      text,
+      completed: false,
+      addedAt: new Date().toISOString(),
+      completedAt: null,
+    };
+    tasks.unshift(task);
+    save();
+    render();
+    input.value = '';
+    input.focus();
+  }
+
+  function toggleTask(id) {
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+    task.completed = !task.completed;
+    task.completedAt = task.completed ? new Date().toISOString() : null;
+    save();
+    render();
+  }
+
+  function deleteTask(id) {
+    const el = document.querySelector(`[data-id="${id}"]`);
+    if (el) {
+      el.style.animation = 'fadeOut 0.25s ease forwards';
+      setTimeout(() => {
+        tasks = tasks.filter(t => t.id !== id);
+        save();
+        render();
+      }, 240);
+    }
+  }
+
+  function startEdit(id) {
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+    const textEl = document.getElementById('text-' + id);
+    const actionsEl = document.querySelector(`[data-id="${id}"] .task-actions`);
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'task-text-input';
+    input.value = task.text;
+    input.maxLength = 200;
+
+    textEl.replaceWith(input);
+    input.focus();
+    input.select();
+
+    // Replace edit button with save
+    actionsEl.innerHTML = `
+      <button class="act-btn save" title="Save" onclick="saveEdit('${id}', this)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </button>
+      <button class="act-btn delete" title="Cancel" onclick="render()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    `;
+
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') saveEdit(id);
+      if (e.key === 'Escape') render();
+    });
+  }
+
+  function saveEdit(id) {
+    const input = document.querySelector(`[data-id="${id}"] .task-text-input`);
+    if (!input) return;
+    const newText = input.value.trim();
+    if (!newText) return;
+    const task = tasks.find(t => t.id === id);
+    if (task) { task.text = newText; save(); render(); }
+  }
+
+  function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // Keyboard shortcut
+  document.getElementById('add-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addTask();
+  });
+
+  // Init
+  updateDateBadge();
+  setInterval(updateDateBadge, 60000);
+  render();
+</script>
+</body>
+</html>
